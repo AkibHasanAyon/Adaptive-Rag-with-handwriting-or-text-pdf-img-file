@@ -10,7 +10,7 @@ from rank_bm25 import BM25Okapi
 from sklearn.metrics.pairwise import cosine_similarity
 from groq import Groq
 
-# ---------------------- API Setup -----------------------
+# ---------------------- API Setup ------------------------
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 groq_client = Groq(api_key=GROQ_API_KEY)
 
@@ -127,4 +127,3 @@ if uploaded_file:
             answer = ask_groq(final_prompt)
         st.markdown("### 📖 Answer")
         st.write(answer)
-
