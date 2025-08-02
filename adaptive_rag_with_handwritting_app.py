@@ -10,11 +10,11 @@ from rank_bm25 import BM25Okapi
 from sklearn.metrics.pairwise import cosine_similarity
 from groq import Groq
 
-# ---------------------- Groq API Init ------------------------
+# ---------------------- API Setup ------------------------
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# ---------------------- Load Models --------------------------
+# ---------------------- Load Models ------------------------
 @st.cache_resource
 def load_models():
     reader = easyocr.Reader(['en'], gpu=False)
@@ -31,25 +31,28 @@ def easyocr_image(image: Image.Image):
     result = reader.readtext(np.array(image), detail=0, paragraph=True)
     return "\n".join(result)
 
-@st.cache_data(show_spinner=False)
 def extract_text(file_path):
     ext = Path(file_path).suffix.lower()
-    if ext == ".pdf":
-        doc = fitz.open(file_path)
-        full_text = ""
-        for i, page in enumerate(doc):
-            typed_text = page.get_text().strip()
-            if len(typed_text) > 50:
-                full_text += typed_text + "\n"
-            else:
-                pix = page.get_pixmap(dpi=400)
-                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                full_text += easyocr_image(img) + "\n"
-        return full_text.strip()
-    elif ext in [".jpg", ".jpeg", ".png"]:
-        img = Image.open(file_path)
-        return easyocr_image(img)
-    else:
+    try:
+        if ext == ".pdf":
+            doc = fitz.open(file_path)
+            full_text = ""
+            for i, page in enumerate(doc):
+                typed_text = page.get_text().strip()
+                if len(typed_text) > 50:
+                    full_text += typed_text + "\n"
+                else:
+                    pix = page.get_pixmap(dpi=400)
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    full_text += easyocr_image(img) + "\n"
+            return full_text.strip()
+        elif ext in [".jpg", ".jpeg", ".png"]:
+            img = Image.open(file_path)
+            return easyocr_image(img)
+        else:
+            return ""
+    except Exception as e:
+        st.error(f"OCR extraction failed: {e}")
         return ""
 
 # ---------------------- RAG Functions ------------------------
@@ -92,32 +95,32 @@ def ask_groq(prompt):
 # ---------------------- Streamlit UI ------------------------
 st.set_page_config(page_title="Adaptive RAG", page_icon="🧠", layout="centered")
 st.title("🧠 Adaptive RAG on Handwritten & Scanned Files")
-st.markdown("Upload any general **handwritten or scanned PDF/image file**, and ask questions based on its content.")
+st.markdown("Upload a general **handwritten or scanned PDF/image file**, and ask questions about its content.")
 
 uploaded_file = st.file_uploader("📤 Upload a file (PDF or Image)", type=["pdf", "jpg", "jpeg", "png"])
 
 if uploaded_file:
     file_path = f"temp_{uploaded_file.name}"
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getvalue())
+    try:
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getvalue())
+        st.success("✅ File uploaded successfully.")
+    except Exception as e:
+        st.error(f"❌ Failed to save uploaded file: {e}")
+        st.stop()
 
-    st.success("✅ File uploaded successfully.")
     with st.spinner("🔍 Extracting and chunking text..."):
-        try:
-            raw_text = extract_text(file_path)
-            if not raw_text or len(raw_text) < 20:
-                st.error("❌ OCR failed. Please upload a clearer image or scan.")
-                st.stop()
-            chunks = chunk_text(raw_text)
-            embeddings, bm25 = build_indexes(chunks)
-        except Exception as e:
-            st.error(f"OCR or parsing failed: {e}")
+        raw_text = extract_text(file_path)
+        if not raw_text or len(raw_text) < 20:
+            st.error("❌ OCR failed or text too short. Try a clearer scan.")
             st.stop()
-    st.success("✅ Ready to answer your questions.")
+        chunks = chunk_text(raw_text)
+        embeddings, bm25 = build_indexes(chunks)
+    st.success("✅ Document processed. Ready to chat!")
 
-    query = st.text_input("💬 What would you like to know from this document?")
+    query = st.text_input("💬 Ask a question about this document:")
     if query:
-        with st.spinner("💬 Thinking..."):
+        with st.spinner("💬 Generating answer..."):
             retrieved = adaptive_retrieve(query, chunks, embeddings, bm25)
             context = "\n".join(retrieved)
             final_prompt = f"Use the context below to answer the question.\n\nContext:\n{context}\n\nQuestion: {query}"
