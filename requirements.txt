@@ -1,0 +1,11 @@
+streamlit
+easyocr
+sentence-transformers
+rank_bm25
+python-dotenv
+groq
+pillow
+scikit-learn
+PyMuPDF
+transformers
+torch
