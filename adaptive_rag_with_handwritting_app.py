@@ -83,18 +83,18 @@ def ask_groq(prompt):
     response = groq_client.chat.completions.create(
         model="llama3-70b-8192",
         messages=[
-            {"role": "system", "content": "You are a helpful medical assistant."},
+            {"role": "system", "content": "You are a helpful assistant who answers questions based on document content."},
             {"role": "user", "content": prompt}
         ]
     )
     return response.choices[0].message.content
 
 # ---------------------- Streamlit UI ------------------------
-st.set_page_config(page_title="Medical RAG", page_icon="🩺", layout="centered")
-st.title("🩺 Adaptive RAG on Medical Handwritten Files")
-st.markdown("Upload a scanned **medical report** (PDF/Image) and ask your question below.")
+st.set_page_config(page_title="Adaptive RAG", page_icon="🧠", layout="centered")
+st.title("🧠 Adaptive RAG on Handwritten & Scanned Files")
+st.markdown("Upload any general **handwritten or scanned PDF/image file**, and ask questions based on its content.")
 
-uploaded_file = st.file_uploader("📤 Upload a handwritten medical file (PDF or Image)", type=["pdf", "jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("📤 Upload a file (PDF or Image)", type=["pdf", "jpg", "jpeg", "png"])
 
 if uploaded_file:
     file_path = f"temp_{uploaded_file.name}"
@@ -122,5 +122,5 @@ if uploaded_file:
             context = "\n".join(retrieved)
             final_prompt = f"Use the context below to answer the question.\n\nContext:\n{context}\n\nQuestion: {query}"
             answer = ask_groq(final_prompt)
-        st.markdown("### 🧠 Answer")
+        st.markdown("### 📖 Answer")
         st.write(answer)
