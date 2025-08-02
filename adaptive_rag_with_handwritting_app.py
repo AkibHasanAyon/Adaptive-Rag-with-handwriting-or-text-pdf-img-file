@@ -85,8 +85,8 @@ def ask_groq(prompt):
 
 # ---------------------- Streamlit UI ------------------------
 st.set_page_config(page_title="Medical OCR RAG", page_icon="🧠", layout="centered")
-st.title("📑 Adaptive RAG on Medical Handwritten Docs")
-st.markdown("Upload a scanned **medical report** or **handwritten file** (PDF/Image), and ask any question about it.")
+st.title("📑 Adaptive RAG on Handwritten Docs")
+st.markdown("Upload a scanned **handwritten file** (PDF/Image), and ask any question about it.")
 
 uploaded_file = st.file_uploader("📤 Upload file (PDF or Image)", type=["pdf", "jpg", "jpeg", "png"])
 
@@ -114,3 +114,4 @@ if uploaded_file:
             answer = ask_groq(final_prompt)
         st.markdown("### 🧠 Answer")
         st.write(answer)
+
